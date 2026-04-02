@@ -5,6 +5,7 @@ import { DietaryFilter, CuisineType, Difficulty, MaxDuration } from '@/types/rec
 
 const FILTERS: DietaryFilter[] = ['végétarien', 'vegan', 'sans gluten', 'sans lactose'];
 const CUISINES: CuisineType[] = ['française', 'italienne', 'asiatique', 'mexicaine', 'méditerranéenne', 'indienne', 'américaine'];
+const PLAT_TYPES = ['viande', 'poisson', 'volaille', 'pâtes', 'soupe', 'salade', 'dessert'];
 const DIFFICULTIES: Difficulty[] = ['débutant', 'intermédiaire', 'chef'];
 const DURATIONS: MaxDuration[] = ['15 min', '30 min', '45 min', '1h'];
 
@@ -14,6 +15,7 @@ export interface GenerateParams {
   ingredients: string[];
   filters: DietaryFilter[];
   cuisineTypes?: CuisineType[];
+  platTypes?: string[];
   difficulty?: Difficulty;
   maxDuration?: MaxDuration;
 }
@@ -23,6 +25,7 @@ export interface PlanParams {
   numberOfPeople: number;
   filters: DietaryFilter[];
   cuisineTypes?: CuisineType[];
+  platTypes?: string[];
   difficulty?: Difficulty;
   maxDuration?: MaxDuration;
 }
@@ -41,6 +44,7 @@ export default function RecipeForm({ onGenerate, onGeneratePlan, loading }: Reci
   const [numberOfPeople, setNumberOfPeople] = useState(2);
   const [selectedFilters, setSelectedFilters] = useState<DietaryFilter[]>([]);
   const [cuisineTypes, setCuisineTypes] = useState<CuisineType[]>([]);
+  const [platTypes, setPlatTypes] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<Difficulty | undefined>();
   const [maxDuration, setMaxDuration] = useState<MaxDuration | undefined>();
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -62,7 +66,7 @@ export default function RecipeForm({ onGenerate, onGeneratePlan, loading }: Reci
   }
 
   function handleSubmit() {
-    const common = { filters: selectedFilters, cuisineTypes, difficulty, maxDuration };
+    const common = { filters: selectedFilters, cuisineTypes, platTypes, difficulty, maxDuration };
     if (mode === 'recette') {
       if (ingredients.length === 0) return;
       onGenerate({ ingredients, ...common });
@@ -75,7 +79,11 @@ export default function RecipeForm({ onGenerate, onGeneratePlan, loading }: Reci
     setCuisineTypes((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
   }
 
-  const advancedCount = [cuisineTypes.length > 0, difficulty, maxDuration].filter(Boolean).length;
+  function togglePlatType(p: string) {
+    setPlatTypes((prev) => prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]);
+  }
+
+  const advancedCount = [cuisineTypes.length > 0, platTypes.length > 0, difficulty, maxDuration].filter(Boolean).length;
 
   return (
     <div className="card p-6 space-y-6">
@@ -194,6 +202,22 @@ export default function RecipeForm({ onGenerate, onGeneratePlan, loading }: Reci
 
         {showAdvanced && (
           <div className="mt-4 space-y-4 pl-4 border-l-2 border-coral/20 animate-slide-down">
+            <div>
+              <label className="block mb-2 text-sm font-bold text-stone-600">Type de plat</label>
+              <div className="flex flex-wrap gap-2">
+                {PLAT_TYPES.map((p, i) => {
+                  const colors = ['chip-coral', 'chip-mango', 'chip-mint', 'chip-sky', 'chip-lavender', 'chip-peach', 'chip-sunshine'];
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => togglePlatType(p)}
+                      className={`chip ${platTypes.includes(p) ? colors[i % colors.length] : 'chip-idle'}`}
+                    >{p}</button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div>
               <label className="block mb-2 text-sm font-bold text-stone-600">Type de cuisine</label>
               <div className="flex flex-wrap gap-2">
