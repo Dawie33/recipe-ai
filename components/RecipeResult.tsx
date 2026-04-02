@@ -69,6 +69,27 @@ interface RecipeResultProps {
 }
 
 export default function RecipeResult({ recipe, onSave, saved }: RecipeResultProps) {
+  const [copied, setCopied] = useState(false);
+
+  function handleShare() {
+    const text = `🍳 ${recipe.title}
+${recipe.duration} · ${recipe.difficulty}${recipe.cuisineType ? ` · ${recipe.cuisineType}` : ''}
+
+📋 Ingrédients:
+${recipe.ingredients.map((i) => `• ${i}`).join('\n')}
+
+👨‍🍳 Préparation:
+${recipe.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+—
+Créé avec Recipe AI 🌟`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
     <div className="card p-7 space-y-6">
       {/* Header */}
@@ -88,17 +109,25 @@ export default function RecipeResult({ recipe, onSave, saved }: RecipeResultProp
             ))}
           </div>
         </div>
-        <button
-          onClick={() => onSave(recipe)}
-          disabled={saved}
-          className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
-            saved
-              ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed'
-              : 'bg-clay text-white border-clay hover:bg-clay-700 shadow-sm hover:shadow-md'
-          }`}
-        >
-          {saved ? '✓ Sauvegardée' : '💾 Sauvegarder'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleShare}
+            className="shrink-0 px-4 py-2 rounded-full text-sm font-semibold border border-stone-200 text-stone-600 hover:bg-stone-50 transition-all"
+          >
+            {copied ? '✓ Copié !' : '📤 Partager'}
+          </button>
+          <button
+            onClick={() => onSave(recipe)}
+            disabled={saved}
+            className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+              saved
+                ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed'
+                : 'bg-clay text-white border-clay hover:bg-clay-700 shadow-sm hover:shadow-md'
+            }`}
+          >
+            {saved ? '✓ Sauvegardée' : '💾 Sauvegarder'}
+          </button>
+        </div>
       </div>
 
       {/* Nutrition */}
