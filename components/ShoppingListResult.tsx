@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { MealPlan, Recipe } from '@/types/recipe';
 import { saveRecipe } from '@/lib/recipeStorage';
-import WeeklyPlanner from '@/components/WeeklyPlanner';
 
 const DIFFICULTY_STYLES: Record<string, string> = {
   débutant: 'bg-herb-50 text-herb',
@@ -140,9 +139,6 @@ export default function ShoppingListResult({ plan }: { plan: MealPlan }) {
           </div>
         </div>
       </div>
-
-      {/* Weekly planner */}
-      <WeeklyPlanner plan={plan} />
 
       {/* Shopping list */}
       <div className="card p-6 space-y-5">
