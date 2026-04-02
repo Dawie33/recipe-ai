@@ -1,65 +1,114 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { Recipe, MealPlan } from '@/types/recipe';
+import RecipeForm, { GenerateParams, PlanParams } from '@/components/RecipeForm';
+import RecipeResult from '@/components/RecipeResult';
+import ShoppingListResult from '@/components/ShoppingListResult';
+import { saveRecipe } from '@/lib/recipeStorage';
+
+type Result = { type: 'recipe'; data: Recipe } | { type: 'plan'; data: MealPlan };
 
 export default function Home() {
+  const [result, setResult] = useState<Result | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  async function handleGenerate(params: GenerateParams) {
+    setLoading(true); setError(null); setResult(null); setSaved(false);
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? 'Une erreur est survenue');
+      setLoading(false);
+      return;
+    }
+    const data = await res.json();
+    setResult({ type: 'recipe', data: { ...data, id: crypto.randomUUID(), filters: params.filters, cuisineType: params.cuisineType, createdAt: new Date().toISOString() } });
+    setLoading(false);
+  }
+
+  async function handleGeneratePlan(params: PlanParams) {
+    setLoading(true); setError(null); setResult(null);
+    const res = await fetch('/api/shopping-list', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? 'Une erreur est survenue');
+      setLoading(false);
+      return;
+    }
+    const data = await res.json();
+    setResult({ type: 'plan', data: { ...data, id: crypto.randomUUID(), numberOfMeals: params.numberOfMeals, numberOfPeople: params.numberOfPeople, filters: params.filters, cuisineType: params.cuisineType, createdAt: new Date().toISOString() } });
+    setLoading(false);
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="space-y-7">
+      {/* Hero */}
+      <div className="pt-2 pb-1">
+        <h1 className="text-4xl font-black tracking-tight leading-tight">
+          <span className="bg-gradient-to-r from-coral via-mango to-sunshine bg-clip-text text-transparent">
+            Cuisinez en famille
+          </span>
+          <br />
+          <span className="text-stone-800">avec </span>
+          <span className="relative inline-block">
+            <span className="bg-gradient-to-r from-mint via-sky to-lavender bg-clip-text text-transparent">l&apos;IA</span>
+            <svg className="absolute -bottom-1 left-0 w-full h-2" viewBox="0 0 100 6" preserveAspectRatio="none">
+              <path d="M0,3 Q25,0 50,3 T100,3" stroke="url(#wave)" strokeWidth="2" fill="none" strokeLinecap="round"/>
+              <defs>
+                <linearGradient id="wave" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#6BCB77"/>
+                  <stop offset="50%" stopColor="#4D96FF"/>
+                  <stop offset="100%" stopColor="#9B59B6"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </span>
+        </h1>
+        <p className="text-stone-500 mt-3 text-base leading-relaxed">
+          Entrez vos ingrédients ou planifiez votre semaine —
+          <br />
+          <span className="text-mint font-semibold">des recettes délicieuses</span> pour toute la famille !
+        </p>
+
+        {/* Feature pills */}
+        <div className="flex flex-wrap gap-2 mt-4">
+          <span className="chip chip-coral text-xs">🥗 Équilibré</span>
+          <span className="chip chip-mango text-xs">👶 Enfants</span>
+          <span className="chip chip-mint text-xs">⚡ Rapide</span>
+          <span className="chip chip-sky text-xs">🌍 Du monde</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      <RecipeForm onGenerate={handleGenerate} onGeneratePlan={handleGeneratePlan} loading={loading} />
+
+      {error && (
+        <div className="bg-coral/10 border-2 border-coral/30 text-coral rounded-2xl p-4 text-sm flex items-start gap-3 animate-pop-in">
+          <span className="shrink-0 text-lg">😅</span>
+          {error}
         </div>
-      </main>
+      )}
+
+      {result?.type === 'recipe' && (
+        <div className="animate-fade-in">
+          <RecipeResult recipe={result.data} onSave={async () => { await saveRecipe(result.data as Recipe); setSaved(true); }} saved={saved} />
+        </div>
+      )}
+      {result?.type === 'plan' && (
+        <div className="animate-fade-in">
+          <ShoppingListResult plan={result.data} />
+        </div>
+      )}
     </div>
   );
 }
