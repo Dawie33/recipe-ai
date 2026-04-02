@@ -1,19 +1,45 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
 import Link from 'next/link';
+import { PWAProvider } from '@/components/PWAProvider';
 import './globals.css';
 
 const geist = Geist({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Recipe AI — Recettes par IA',
-  description: 'Générez des recettes de cuisine personnalisées avec Claude',
+  description: 'Générez des recettes de cuisine personnalisées avec l\'IA',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Recipe AI',
+  },
+  icons: {
+    icon: '/icons/icon-192.png',
+    apple: '/icons/icon-192.png',
+  },
+
+  openGraph: {
+    title: 'Recipe AI',
+    description: 'Générez des recettes personnalisées avec l\'IA',
+    type: 'website',
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#FF6B6B',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={geist.className}>
       <body className="min-h-screen overflow-x-hidden">
+        <PWAProvider />
         {/* Rainbow accent bar */}
         <div className="h-[4px] bg-gradient-to-r from-coral via-mango via-sunshine via-mint via-sky to-lavender" />
 
