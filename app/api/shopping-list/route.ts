@@ -9,21 +9,21 @@ export async function POST(request: NextRequest) {
     numberOfMeals,
     numberOfPeople,
     filters,
-    cuisineType,
+    cuisineTypes,
     difficulty,
     maxDuration,
   }: {
     numberOfMeals: number;
     numberOfPeople: number;
     filters: DietaryFilter[];
-    cuisineType?: CuisineType;
+    cuisineTypes?: CuisineType[];
     difficulty?: Difficulty;
     maxDuration?: MaxDuration;
   } = await request.json();
 
   const constraints: string[] = [];
   if (filters.length > 0) constraints.push(`Contraintes alimentaires : ${filters.join(', ')}`);
-  if (cuisineType) constraints.push(`Type de cuisine : ${cuisineType}`);
+  if (cuisineTypes && cuisineTypes.length > 0) constraints.push(`Type(s) de cuisine : ${cuisineTypes.join(' ou ')}`);
   if (difficulty) constraints.push(`Niveau de difficulté : ${difficulty}`);
   if (maxDuration) constraints.push(`Temps de préparation maximum par repas : ${maxDuration}`);
 

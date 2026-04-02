@@ -30,7 +30,7 @@ export default function Home() {
       return;
     }
     const data = await res.json();
-    setResult({ type: 'recipe', data: { ...data, id: crypto.randomUUID(), filters: params.filters, cuisineType: params.cuisineType, createdAt: new Date().toISOString() } });
+    setResult({ type: 'recipe', data: { ...data, id: crypto.randomUUID(), filters: params.filters, cuisineType: params.cuisineTypes?.[0], createdAt: new Date().toISOString() } });
     setLoading(false);
   }
 
@@ -48,7 +48,7 @@ export default function Home() {
       return;
     }
     const data = await res.json();
-    setResult({ type: 'plan', data: { ...data, id: crypto.randomUUID(), numberOfMeals: params.numberOfMeals, numberOfPeople: params.numberOfPeople, filters: params.filters, cuisineType: params.cuisineType, createdAt: new Date().toISOString() } });
+    setResult({ type: 'plan', data: { ...data, id: crypto.randomUUID(), numberOfMeals: params.numberOfMeals, numberOfPeople: params.numberOfPeople, filters: params.filters, cuisineType: params.cuisineTypes?.[0], createdAt: new Date().toISOString() } });
     setLoading(false);
   }
 

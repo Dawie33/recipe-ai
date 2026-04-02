@@ -13,7 +13,7 @@ type Mode = 'recette' | 'plan';
 export interface GenerateParams {
   ingredients: string[];
   filters: DietaryFilter[];
-  cuisineType?: CuisineType;
+  cuisineTypes?: CuisineType[];
   difficulty?: Difficulty;
   maxDuration?: MaxDuration;
 }
@@ -22,7 +22,7 @@ export interface PlanParams {
   numberOfMeals: number;
   numberOfPeople: number;
   filters: DietaryFilter[];
-  cuisineType?: CuisineType;
+  cuisineTypes?: CuisineType[];
   difficulty?: Difficulty;
   maxDuration?: MaxDuration;
 }
@@ -40,7 +40,7 @@ export default function RecipeForm({ onGenerate, onGeneratePlan, loading }: Reci
   const [numberOfMeals, setNumberOfMeals] = useState(5);
   const [numberOfPeople, setNumberOfPeople] = useState(2);
   const [selectedFilters, setSelectedFilters] = useState<DietaryFilter[]>([]);
-  const [cuisineType, setCuisineType] = useState<CuisineType | undefined>();
+  const [cuisineTypes, setCuisineTypes] = useState<CuisineType[]>([]);
   const [difficulty, setDifficulty] = useState<Difficulty | undefined>();
   const [maxDuration, setMaxDuration] = useState<MaxDuration | undefined>();
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -62,7 +62,7 @@ export default function RecipeForm({ onGenerate, onGeneratePlan, loading }: Reci
   }
 
   function handleSubmit() {
-    const common = { filters: selectedFilters, cuisineType, difficulty, maxDuration };
+    const common = { filters: selectedFilters, cuisineTypes, difficulty, maxDuration };
     if (mode === 'recette') {
       if (ingredients.length === 0) return;
       onGenerate({ ingredients, ...common });
@@ -71,7 +71,11 @@ export default function RecipeForm({ onGenerate, onGeneratePlan, loading }: Reci
     }
   }
 
-  const advancedCount = [cuisineType, difficulty, maxDuration].filter(Boolean).length;
+  function toggleCuisine(c: CuisineType) {
+    setCuisineTypes((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]);
+  }
+
+  const advancedCount = [cuisineTypes.length > 0, difficulty, maxDuration].filter(Boolean).length;
 
   return (
     <div className="card p-6 space-y-6">
@@ -198,8 +202,8 @@ export default function RecipeForm({ onGenerate, onGeneratePlan, loading }: Reci
                   return (
                     <button
                       key={c}
-                      onClick={() => setCuisineType(cuisineType === c ? undefined : c)}
-                      className={`chip ${cuisineType === c ? colors[i % colors.length] : 'chip-idle'}`}
+                      onClick={() => toggleCuisine(c)}
+                      className={`chip ${cuisineTypes.includes(c) ? colors[i % colors.length] : 'chip-idle'}`}
                     >{c}</button>
                   );
                 })}
