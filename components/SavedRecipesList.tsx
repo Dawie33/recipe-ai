@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Recipe, DietaryFilter, Difficulty } from '@/types/recipe';
 import { getSavedRecipes, deleteRecipe, updateRecipe } from '@/lib/recipeStorage';
+import { SkeletonList } from '@/components/SkeletonLoaders';
 
 const DIFFICULTY_STYLES: Record<string, string> = {
   débutant: 'bg-herb-50 text-herb',
@@ -77,6 +78,7 @@ function StarRating({ value, onChange }: { value?: number; onChange: (v: number)
 
 export default function SavedRecipesList() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [filterDiet, setFilterDiet] = useState<DietaryFilter | ''>('');
@@ -85,12 +87,15 @@ export default function SavedRecipesList() {
   const [commentDraft, setCommentDraft] = useState('');
 
   useEffect(() => {
-    getSavedRecipes().then(setRecipes);
+    getSavedRecipes().then((data) => {
+      setRecipes(data);
+      setLoading(false);
+    });
   }, []);
 
   async function refresh() {
-    const recipes = await getSavedRecipes();
-    setRecipes(recipes);
+    const data = await getSavedRecipes();
+    setRecipes(data);
   }
 
   const filtered = useMemo(() => recipes.filter((r) => {
@@ -99,6 +104,10 @@ export default function SavedRecipesList() {
     if (filterDiff && r.difficulty !== filterDiff) return false;
     return true;
   }), [recipes, search, filterDiet, filterDiff]);
+
+  if (loading) {
+    return <SkeletonList count={4} />;
+  }
 
   if (recipes.length === 0) {
     return (

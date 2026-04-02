@@ -6,6 +6,7 @@ import RecipeForm, { GenerateParams, PlanParams } from '@/components/RecipeForm'
 import RecipeResult from '@/components/RecipeResult';
 import ShoppingListResult from '@/components/ShoppingListResult';
 import { saveRecipe } from '@/lib/recipeStorage';
+import { SkeletonRecipeResult } from '@/components/SkeletonLoaders';
 
 type Result = { type: 'recipe'; data: Recipe } | { type: 'plan'; data: MealPlan };
 
@@ -109,6 +110,7 @@ export default function Home() {
           <ShoppingListResult plan={result.data} />
         </div>
       )}
+      {loading && !result && <SkeletonRecipeResult />}
     </div>
   );
 }
