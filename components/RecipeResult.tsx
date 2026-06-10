@@ -71,6 +71,94 @@ interface RecipeResultProps {
 export default function RecipeResult({ recipe, onSave, saved }: RecipeResultProps) {
   const [copied, setCopied] = useState(false);
 
+  async function handleExportPDF() {
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const ml = 15, pw = 210, cw = pw - 30;
+    let y = 20;
+
+    function checkPage(needed = 8) { if (y + needed > 280) { doc.addPage(); y = 20; } }
+
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.setTextColor(28, 25, 23);
+    doc.text(recipe.title, ml, y);
+    y += 8;
+
+    // Meta
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(120, 113, 108);
+    const meta = [recipe.duration, recipe.difficulty, recipe.cuisineType, ...recipe.filters].filter(Boolean).join(' · ');
+    doc.text(meta, ml, y);
+    y += 4;
+    doc.setDrawColor(200, 75, 49);
+    doc.setLineWidth(0.5);
+    doc.line(ml, y, pw - ml, y);
+    y += 8;
+
+    // Nutrition
+    if (recipe.nutrition) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(28, 25, 23);
+      doc.text('Valeurs nutritionnelles (par portion)', ml, y);
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(60, 55, 52);
+      doc.text(
+        `${recipe.nutrition.calories} kcal  ·  Protéines : ${recipe.nutrition.proteins}g  ·  Glucides : ${recipe.nutrition.carbs}g  ·  Lipides : ${recipe.nutrition.fat}g`,
+        ml, y
+      );
+      y += 8;
+    }
+
+    // Ingredients
+    checkPage(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(28, 25, 23);
+    doc.text('Ingrédients', ml, y);
+    y += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(60, 55, 52);
+    for (const item of recipe.ingredients) {
+      checkPage(6);
+      doc.setDrawColor(180, 170, 165);
+      doc.circle(ml + 1.5, y - 1.5, 1, 'F');
+      const lines = doc.splitTextToSize(item, cw - 6);
+      doc.text(lines, ml + 6, y);
+      y += lines.length * 5 + 1;
+    }
+    y += 4;
+
+    // Steps
+    checkPage(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(28, 25, 23);
+    doc.text('Préparation', ml, y);
+    y += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(60, 55, 52);
+    recipe.steps.forEach((step, i) => {
+      checkPage(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${i + 1}.`, ml, y);
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(step, cw - 8);
+      doc.text(lines, ml + 8, y);
+      y += lines.length * 5 + 2;
+    });
+
+    const slug = recipe.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    doc.save(`${slug}.pdf`);
+  }
+
   function handleShare() {
     const text = `🍳 ${recipe.title}
 ${recipe.duration} · ${recipe.difficulty}${recipe.cuisineType ? ` · ${recipe.cuisineType}` : ''}
@@ -109,7 +197,13 @@ Créé avec Recipe AI 🌟`;
             ))}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap justify-end">
+          <button
+            onClick={handleExportPDF}
+            className="shrink-0 px-4 py-2 rounded-full text-sm font-semibold border border-stone-200 text-stone-600 hover:bg-stone-50 transition-all"
+          >
+            📥 PDF
+          </button>
           <button
             onClick={handleShare}
             className="shrink-0 px-4 py-2 rounded-full text-sm font-semibold border border-stone-200 text-stone-600 hover:bg-stone-50 transition-all"

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { MealPlan, Recipe } from '@/types/recipe';
 import { saveRecipe } from '@/lib/recipeStorage';
+import WeeklyPlanner from '@/components/WeeklyPlanner';
 
 const DIFFICULTY_STYLES: Record<string, string> = {
   débutant: 'bg-herb-50 text-herb',
@@ -37,51 +38,148 @@ export default function ShoppingListResult({ plan }: { plan: MealPlan }) {
   async function handleExport() {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const marginLeft = 15, pageWidth = 210, contentWidth = pageWidth - 30;
+    const ml = 15, pw = 210, cw = pw - 30;
     let y = 20;
 
     function checkPage(needed = 8) { if (y + needed > 280) { doc.addPage(); y = 20; } }
+    function sectionTitle(title: string) {
+      checkPage(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(28, 25, 23);
+      doc.text(title, ml, y);
+      y += 5;
+      doc.setDrawColor(200, 75, 49);
+      doc.setLineWidth(0.4);
+      doc.line(ml, y, pw - ml, y);
+      y += 7;
+    }
 
+    // ── Cover header ──
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(20);
+    doc.setFontSize(22);
     doc.setTextColor(28, 25, 23);
-    doc.text('Liste de courses', marginLeft, y);
+    doc.text('Plan de repas', ml, y);
     y += 8;
-
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(120, 113, 108);
     doc.text(
       `${plan.numberOfMeals} repas · ${plan.numberOfPeople} personne${plan.numberOfPeople > 1 ? 's' : ''}${plan.filters.length ? ' · ' + plan.filters.join(', ') : ''}`,
-      marginLeft, y
+      ml, y
     );
     y += 4;
     doc.setDrawColor(200, 75, 49);
-    doc.setLineWidth(0.5);
-    doc.line(marginLeft, y, pageWidth - marginLeft, y);
-    y += 8;
+    doc.setLineWidth(0.6);
+    doc.line(ml, y, pw - ml, y);
+    y += 10;
 
+    // ── Shopping list ──
+    sectionTitle('🛒 Liste de courses');
     for (const cat of plan.shoppingList) {
       checkPage(14);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
       doc.setTextColor(28, 25, 23);
-      doc.text(`${CATEGORY_ICONS[cat.category] ?? ''} ${cat.category}`.trim(), marginLeft, y);
-      y += 7;
+      doc.text(`${CATEGORY_ICONS[cat.category] ?? ''} ${cat.category}`.trim(), ml, y);
+      y += 6;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.setTextColor(60, 55, 52);
       for (const item of cat.items) {
         checkPage(6);
         doc.setDrawColor(180, 170, 165);
-        doc.rect(marginLeft, y - 3.5, 3.5, 3.5);
-        const lines = doc.splitTextToSize(item, contentWidth - 8);
-        doc.text(lines, marginLeft + 6, y);
+        doc.setFillColor(255, 255, 255);
+        doc.rect(ml, y - 3.2, 3.2, 3.2);
+        const lines = doc.splitTextToSize(item, cw - 8);
+        doc.text(lines, ml + 6, y);
         y += lines.length * 5 + 1;
       }
       y += 4;
     }
-    doc.save(`liste-courses-${plan.numberOfMeals}-repas.pdf`);
+
+    // ── Recipes ──
+    doc.addPage();
+    y = 20;
+    sectionTitle('📋 Recettes');
+
+    plan.recipes.forEach((recipe, i) => {
+      checkPage(20);
+
+      // Recipe title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(200, 75, 49);
+      doc.text(`${i + 1}. ${recipe.title}`, ml, y);
+      y += 5;
+
+      // Meta
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(120, 113, 108);
+      const meta = [recipe.duration, recipe.difficulty].filter(Boolean).join(' · ');
+      doc.text(meta, ml, y);
+      y += 5;
+
+      // Nutrition
+      if (recipe.nutrition) {
+        doc.setTextColor(100, 95, 90);
+        doc.text(
+          `${recipe.nutrition.calories} kcal · Prot. ${recipe.nutrition.proteins}g · Gluc. ${recipe.nutrition.carbs}g · Lip. ${recipe.nutrition.fat}g`,
+          ml, y
+        );
+        y += 5;
+      }
+
+      // Ingredients
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(28, 25, 23);
+      doc.text('Ingrédients', ml, y);
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(60, 55, 52);
+      for (const item of recipe.ingredients) {
+        checkPage(5);
+        doc.setFillColor(120, 113, 108);
+        doc.circle(ml + 1.2, y - 1.2, 0.8, 'F');
+        const lines = doc.splitTextToSize(item, cw - 6);
+        doc.text(lines, ml + 5, y);
+        y += lines.length * 4.5 + 0.5;
+      }
+      y += 3;
+
+      // Steps
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(28, 25, 23);
+      doc.text('Préparation', ml, y);
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(60, 55, 52);
+      recipe.steps.forEach((step, si) => {
+        checkPage(7);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${si + 1}.`, ml, y);
+        doc.setFont('helvetica', 'normal');
+        const lines = doc.splitTextToSize(step, cw - 8);
+        doc.text(lines, ml + 7, y);
+        y += lines.length * 4.5 + 1;
+      });
+
+      y += 6;
+      // Separator between recipes (except last)
+      if (i < plan.recipes.length - 1) {
+        checkPage(4);
+        doc.setDrawColor(220, 215, 210);
+        doc.setLineWidth(0.3);
+        doc.line(ml, y - 3, pw - ml, y - 3);
+      }
+    });
+
+    doc.save(`plan-repas-${plan.numberOfMeals}-repas.pdf`);
   }
 
   function handleSaveRecipes() {
@@ -194,6 +292,9 @@ export default function ShoppingListResult({ plan }: { plan: MealPlan }) {
           ))}
         </div>
       </div>
+
+      {/* Weekly planner */}
+      <WeeklyPlanner plan={plan} />
 
       {/* Recipes */}
       <div className="space-y-3">

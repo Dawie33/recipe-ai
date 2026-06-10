@@ -1,54 +1,38 @@
 import { Recipe } from '@/types/recipe';
 
-async function fetchApi(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<unknown> {
-  const res = await fetch(`/api/recipes${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
+const STORAGE_KEY = 'recipe-ai-saved';
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error ?? 'API Error');
-  }
-
-  return res.json();
-}
-
-export async function getSavedRecipes(): Promise<Recipe[]> {
+function load(): Recipe[] {
+  if (typeof window === 'undefined') return [];
   try {
-    const data = await fetchApi('') as Recipe[];
-    return data ?? [];
-  } catch (error) {
-    console.error('Error fetching recipes:', error);
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]') as Recipe[];
+  } catch {
     return [];
   }
 }
 
+function persist(recipes: Recipe[]): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+}
+
+export async function getSavedRecipes(): Promise<Recipe[]> {
+  return load();
+}
+
 export async function saveRecipe(recipe: Recipe): Promise<void> {
-  await fetchApi('', {
-    method: 'POST',
-    body: JSON.stringify(recipe),
-  });
+  const recipes = load();
+  if (!recipes.find((r) => r.id === recipe.id)) {
+    persist([recipe, ...recipes]);
+  }
 }
 
 export async function updateRecipe(
   id: string,
   updates: Partial<Pick<Recipe, 'rating' | 'comment'>>
 ): Promise<void> {
-  await fetchApi('', {
-    method: 'PUT',
-    body: JSON.stringify({ id, ...updates }),
-  });
+  persist(load().map((r) => (r.id === id ? { ...r, ...updates } : r)));
 }
 
 export async function deleteRecipe(id: string): Promise<void> {
-  await fetchApi(`?id=${id}`, {
-    method: 'DELETE',
-  });
+  persist(load().filter((r) => r.id !== id));
 }
