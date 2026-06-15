@@ -5,7 +5,7 @@ import { Recipe, MealPlan } from '@/types/recipe';
 import RecipeForm, { GenerateParams, PlanParams } from '@/components/RecipeForm';
 import RecipeResult from '@/components/RecipeResult';
 import ShoppingListResult from '@/components/ShoppingListResult';
-import { saveRecipe } from '@/lib/recipeStorage';
+import { saveRecipe, getRecentTitles, addRecentTitles } from '@/lib/recipeStorage';
 import { SkeletonRecipeResult } from '@/components/SkeletonLoaders';
 
 type Result = { type: 'recipe'; data: Recipe } | { type: 'plan'; data: MealPlan };
@@ -15,13 +15,14 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [lastPlanParams, setLastPlanParams] = useState<PlanParams | null>(null);
 
   async function handleGenerate(params: GenerateParams) {
     setLoading(true); setError(null); setResult(null); setSaved(false);
     const res = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
+      body: JSON.stringify({ ...params, recentTitles: getRecentTitles() }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -30,16 +31,18 @@ export default function Home() {
       return;
     }
     const data = await res.json();
+    addRecentTitles([data.title]);
     setResult({ type: 'recipe', data: { ...data, id: crypto.randomUUID(), filters: params.filters, cuisineType: params.cuisineTypes?.[0], createdAt: new Date().toISOString() } });
     setLoading(false);
   }
 
   async function handleGeneratePlan(params: PlanParams) {
+    setLastPlanParams(params);
     setLoading(true); setError(null); setResult(null);
     const res = await fetch('/api/shopping-list', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
+      body: JSON.stringify({ ...params, recentTitles: getRecentTitles() }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -48,7 +51,41 @@ export default function Home() {
       return;
     }
     const data = await res.json();
+    addRecentTitles(data.recipes.map((r: { title: string }) => r.title));
     setResult({ type: 'plan', data: { ...data, id: crypto.randomUUID(), numberOfMeals: params.numberOfMeals, numberOfPeople: params.numberOfPeople, filters: params.filters, cuisineType: params.cuisineTypes?.[0], createdAt: new Date().toISOString() } });
+    setLoading(false);
+  }
+
+  async function handleRegenerate(keptRecipes: MealPlan['recipes'], totalMeals: number) {
+    if (!lastPlanParams || result?.type !== 'plan') return;
+    const missingCount = totalMeals - keptRecipes.length;
+    setLoading(true); setError(null);
+    const res = await fetch('/api/shopping-list', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...lastPlanParams,
+        numberOfMeals: missingCount,
+        existingRecipes: keptRecipes.map(r => ({ title: r.title, ingredients: r.ingredients })),
+      }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? 'Une erreur est survenue');
+      setLoading(false);
+      return;
+    }
+    const data = await res.json();
+    addRecentTitles(data.recipes.map((r: { title: string }) => r.title));
+    setResult({
+      type: 'plan',
+      data: {
+        ...result.data,
+        id: crypto.randomUUID(),
+        recipes: [...keptRecipes, ...data.recipes],
+        shoppingList: data.shoppingList,
+      },
+    });
     setLoading(false);
   }
 
@@ -107,7 +144,12 @@ export default function Home() {
       )}
       {result?.type === 'plan' && (
         <div className="animate-fade-in">
-          <ShoppingListResult plan={result.data} />
+          <ShoppingListResult
+            key={result.data.id}
+            plan={result.data}
+            onRegenerate={handleRegenerate}
+            regenerating={loading}
+          />
         </div>
       )}
       {loading && !result && <SkeletonRecipeResult />}

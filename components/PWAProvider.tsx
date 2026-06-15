@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 
 export function PWAProvider() {
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
       navigator.serviceWorker.register('/sw.js').then(
         (registration) => {
           console.log('PWA registered:', registration.scope);

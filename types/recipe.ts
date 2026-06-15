@@ -1,7 +1,8 @@
-export type DietaryFilter = 'végétarien' | 'vegan' | 'sans gluten' | 'sans lactose';
+export type DietaryFilter = 'végétarien' | 'vegan' | 'sans gluten' | 'sans lactose' | 'sans crustacés' | 'sans noisettes' | 'riche en protéines';
 export type CuisineType = 'française' | 'italienne' | 'asiatique' | 'mexicaine' | 'méditerranéenne' | 'indienne' | 'américaine';
 export type Difficulty = 'débutant' | 'intermédiaire' | 'chef';
 export type MaxDuration = '15 min' | '30 min' | '45 min' | '1h';
+export type Season = 'printemps' | 'été' | 'automne' | 'hiver';
 
 export interface Nutrition {
   calories: number;

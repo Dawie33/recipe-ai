@@ -21,11 +21,28 @@ const CATEGORY_ICONS: Record<string, string> = {
   Autres: '🛒',
 };
 
-export default function ShoppingListResult({ plan }: { plan: MealPlan }) {
+interface ShoppingListResultProps {
+  plan: MealPlan;
+  onRegenerate?: (keptRecipes: MealPlan['recipes'], totalMeals: number) => void;
+  regenerating?: boolean;
+}
+
+export default function ShoppingListResult({ plan, onRegenerate, regenerating }: ShoppingListResultProps) {
   const [expandedRecipe, setExpandedRecipe] = useState<number | null>(null);
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [recipesSaved, setRecipesSaved] = useState(false);
   const [confirmSave, setConfirmSave] = useState(false);
+  const [deletedIndexes, setDeletedIndexes] = useState<Set<number>>(new Set());
+
+  function deleteRecipe(i: number) {
+    setDeletedIndexes(prev => new Set([...prev, i]));
+    if (expandedRecipe === i) setExpandedRecipe(null);
+  }
+
+  function handleRegenerate() {
+    const keptRecipes = plan.recipes.filter((_, i) => !deletedIndexes.has(i));
+    onRegenerate?.(keptRecipes, plan.numberOfMeals);
+  }
 
   function toggleCheck(key: string) {
     setCheckedItems((prev) => {
@@ -75,13 +92,13 @@ export default function ShoppingListResult({ plan }: { plan: MealPlan }) {
     y += 10;
 
     // ── Shopping list ──
-    sectionTitle('🛒 Liste de courses');
+    sectionTitle('Liste de courses');
     for (const cat of plan.shoppingList) {
       checkPage(14);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
       doc.setTextColor(28, 25, 23);
-      doc.text(`${CATEGORY_ICONS[cat.category] ?? ''} ${cat.category}`.trim(), ml, y);
+      doc.text(cat.category, ml, y);
       y += 6;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
@@ -101,7 +118,7 @@ export default function ShoppingListResult({ plan }: { plan: MealPlan }) {
     // ── Recipes ──
     doc.addPage();
     y = 20;
-    sectionTitle('📋 Recettes');
+    sectionTitle('Recettes');
 
     plan.recipes.forEach((recipe, i) => {
       checkPage(20);
@@ -213,6 +230,15 @@ export default function ShoppingListResult({ plan }: { plan: MealPlan }) {
             )}
           </div>
           <div className="flex flex-wrap gap-2">
+            {deletedIndexes.size > 0 && (
+              <button
+                onClick={handleRegenerate}
+                disabled={regenerating}
+                className="chip chip-coral !px-4 !py-2 !rounded-xl disabled:opacity-60"
+              >
+                {regenerating ? '⏳ Génération…' : `🔄 Régénérer (${deletedIndexes.size} recette${deletedIndexes.size > 1 ? 's' : ''} supprimée${deletedIndexes.size > 1 ? 's' : ''})`}
+              </button>
+            )}
             <button onClick={handleExport} className="chip chip-idle !px-4 !py-2 !rounded-xl">
               📥 Exporter (PDF)
             </button>
@@ -299,17 +325,31 @@ export default function ShoppingListResult({ plan }: { plan: MealPlan }) {
       {/* Recipes */}
       <div className="space-y-3">
         <p className="section-label px-1">Les recettes</p>
-        {plan.recipes.map((recipe, i) => (
+        {plan.recipes.map((recipe, i) => {
+          if (deletedIndexes.has(i)) return null;
+          return (
           <div key={i} className="card p-5 space-y-3">
-            <div
-              className="flex items-start justify-between gap-4 cursor-pointer"
-              onClick={() => setExpandedRecipe(expandedRecipe === i ? null : i)}
-            >
-              <div className="flex items-center gap-3">
+            <div className="flex items-start justify-between gap-4">
+              <div
+                className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
+                onClick={() => setExpandedRecipe(expandedRecipe === i ? null : i)}
+              >
                 <span className="w-7 h-7 rounded-full bg-clay-50 text-clay text-sm font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-                <h4 className="font-semibold text-stone-900">{recipe.title}</h4>
+                <h4 className="font-semibold text-stone-900 truncate">{recipe.title}</h4>
               </div>
-              <span className="text-stone-400 text-sm shrink-0">{expandedRecipe === i ? '▲' : '▼'}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => deleteRecipe(i)}
+                  title="Supprimer cette recette"
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-stone-300 hover:text-coral hover:bg-coral/10 transition-all text-lg leading-none"
+                >
+                  ×
+                </button>
+                <span
+                  className="text-stone-400 text-sm cursor-pointer"
+                  onClick={() => setExpandedRecipe(expandedRecipe === i ? null : i)}
+                >{expandedRecipe === i ? '▲' : '▼'}</span>
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
@@ -362,7 +402,7 @@ export default function ShoppingListResult({ plan }: { plan: MealPlan }) {
               </div>
             )}
           </div>
-        ))}
+        );})}
       </div>
     </div>
   );

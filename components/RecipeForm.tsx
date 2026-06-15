@@ -1,9 +1,23 @@
 'use client';
 
 import { useState, KeyboardEvent } from 'react';
-import { DietaryFilter, CuisineType, Difficulty, MaxDuration } from '@/types/recipe';
+import { DietaryFilter, CuisineType, Difficulty, MaxDuration, Season } from '@/types/recipe';
 
-const FILTERS: DietaryFilter[] = ['végétarien', 'vegan', 'sans gluten', 'sans lactose'];
+const FILTERS: DietaryFilter[] = ['végétarien', 'vegan', 'sans gluten', 'sans lactose', 'riche en protéines', 'sans crustacés', 'sans noisettes'];
+const SEASONS: { value: Season; label: string; icon: string }[] = [
+  { value: 'printemps', label: 'Printemps', icon: '🌸' },
+  { value: 'été', label: 'Été', icon: '☀️' },
+  { value: 'automne', label: 'Automne', icon: '🍂' },
+  { value: 'hiver', label: 'Hiver', icon: '❄️' },
+];
+
+function getCurrentSeason(): Season {
+  const month = new Date().getMonth() + 1;
+  if (month >= 3 && month <= 5) return 'printemps';
+  if (month >= 6 && month <= 8) return 'été';
+  if (month >= 9 && month <= 11) return 'automne';
+  return 'hiver';
+}
 const CUISINES: CuisineType[] = ['française', 'italienne', 'asiatique', 'mexicaine', 'méditerranéenne', 'indienne', 'américaine'];
 const PLAT_TYPES = ['viande', 'poisson', 'volaille', 'pâtes', 'soupe', 'salade', 'dessert'];
 const DIFFICULTIES: Difficulty[] = ['débutant', 'intermédiaire', 'chef'];
@@ -18,6 +32,7 @@ export interface GenerateParams {
   platTypes?: string[];
   difficulty?: Difficulty;
   maxDuration?: MaxDuration;
+  season?: Season;
 }
 
 export interface PlanParams {
@@ -28,6 +43,7 @@ export interface PlanParams {
   platTypes?: string[];
   difficulty?: Difficulty;
   maxDuration?: MaxDuration;
+  season?: Season;
 }
 
 interface RecipeFormProps {
@@ -47,6 +63,7 @@ export default function RecipeForm({ onGenerate, onGeneratePlan, loading }: Reci
   const [platTypes, setPlatTypes] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<Difficulty | undefined>();
   const [maxDuration, setMaxDuration] = useState<MaxDuration | undefined>();
+  const [season, setSeason] = useState<Season>(getCurrentSeason());
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   function addIngredient() {
@@ -66,7 +83,7 @@ export default function RecipeForm({ onGenerate, onGeneratePlan, loading }: Reci
   }
 
   function handleSubmit() {
-    const common = { filters: selectedFilters, cuisineTypes, platTypes, difficulty, maxDuration };
+    const common = { filters: selectedFilters, cuisineTypes, platTypes, difficulty, maxDuration, season };
     if (mode === 'recette') {
       if (ingredients.length === 0) return;
       onGenerate({ ingredients, ...common });
@@ -159,6 +176,27 @@ export default function RecipeForm({ onGenerate, onGeneratePlan, loading }: Reci
           ))}
         </div>
       )}
+
+      {/* Season selector */}
+      <div>
+        <label className="block mb-2 text-sm font-bold text-stone-600">Saison</label>
+        <div className="flex gap-2">
+          {SEASONS.map((s) => (
+            <button
+              key={s.value}
+              onClick={() => setSeason(s.value)}
+              className={`flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-2xl border-2 text-xs font-semibold transition-all ${
+                season === s.value
+                  ? 'border-coral bg-coral/10 text-coral'
+                  : 'border-stone-200 text-stone-400 hover:border-stone-300 hover:text-stone-600'
+              }`}
+            >
+              <span className="text-lg">{s.icon}</span>
+              <span>{s.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Dietary filters */}
       <div>
